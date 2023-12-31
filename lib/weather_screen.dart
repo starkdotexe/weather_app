@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:weather_app/secrets.dart';
+import 'additional_info_item.dart';
+import 'hourly_weather_forcast.dart';
+import 'package:http/http.dart' as http;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
   final String title;
 
   @override
@@ -10,6 +13,22 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    getCurrentWeather();
+  }
+
+  Future getCurrentWeather() async {
+    String cityName = 'London';
+    final res = await http.get(
+      Uri.parse(
+        'https://api.openweathermap.org/data/2.5/weather?q=$cityName,uk&APPID=$openWeatherAPIKey',
+      ),
+    );
+    print(res.body);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,35 +86,36 @@ class _MyHomePageState extends State<MyHomePage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  Card(
-                    elevation: 6,
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        width: 100,
-                        child: Column(
-                          children: [
-                            Text(
-                              '03:00',
-                              style: TextStyle(fontSize: 20),
-                            ),
-                            SizedBox(height: 10),
-                            Icon(
-                              Icons.cloud,
-                              size: 32,
-                            ),
-                            SizedBox(height: 10),
-                            Text(
-                              '10° C',
-                              style: TextStyle(fontSize: 20),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  HourlyWeatherForcast(
+                      time: '03:00', icon: Icons.cloud, temp: '10° C'),
+                  HourlyWeatherForcast(
+                      time: '04:00', icon: Icons.sunny, temp: '20° C'),
+                  HourlyWeatherForcast(
+                      time: '05:00', icon: Icons.thunderstorm, temp: '22° C'),
+                  HourlyWeatherForcast(
+                      time: '06:00', icon: Icons.cloud, temp: '24° C'),
+                  HourlyWeatherForcast(
+                      time: '07:00', icon: Icons.cloud, temp: '25° C'),
                 ],
               ),
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Text(
+              'Additional Information',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                AdditionalInfoItem(
+                    icon: Icons.water_drop, label: 'humidity', value: '94'),
+                AdditionalInfoItem(
+                    icon: Icons.air, label: 'Wind Speed', value: '20'),
+                AdditionalInfoItem(
+                    icon: Icons.beach_access, label: 'Pressure', value: '1006'),
+              ],
             )
           ],
         ),
