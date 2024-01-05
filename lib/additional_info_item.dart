@@ -15,10 +15,10 @@ class AdditionalInfoItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 6,
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SizedBox(
-          width: 100,
+      child: SizedBox(
+        width: 110,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
               Icon(
@@ -30,6 +30,7 @@ class AdditionalInfoItem extends StatelessWidget {
                 label,
                 style: const TextStyle(fontSize: 20),
               ),
+              const SizedBox(height: 10),
               Text(
                 value,
                 style: const TextStyle(fontSize: 20),
