@@ -14,6 +14,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  String cityName = 'delhi';
   @override
   void initState() {
     super.initState();
@@ -22,18 +23,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<Map<String, dynamic>> getCurrentWeather() async {
     try {
-      String cityName = 'delhi';
       final res = await http.get(
+        Uri.parse(
+          'https://api.openweathermap.org/data/2.5/weather?q=$cityName&units=metric&APPID=$openWeatherAPIKey',
+        ),
+      );
+      final res2 = await http.get(
         Uri.parse(
           'https://api.openweathermap.org/data/2.5/forecast?q=$cityName&units=metric&APPID=$openWeatherAPIKey',
         ),
       );
-      final data = jsonDecode(res.body);
-      if (data['cod'] == '200') {
-        return data;
-      } else {
-        throw 'an unexpected error occured';
-      }
+      final weatherData = jsonDecode(res.body);
+      final forecastData = jsonDecode(res2.body);
+
+      return {'weather': weatherData, 'forecast': forecastData};
     } catch (e) {
       throw e.toString();
     }
@@ -65,100 +68,154 @@ class _MyHomePageState extends State<MyHomePage> {
           }
           if (snapshot.hasError) {
             return Text(snapshot.error.toString());
-          }
-          final data = snapshot.data!;
-          final currentWeatherData = data['list'][0];
-          final currentTemp = currentWeatherData['main']['temp'];
-          final currentSky = currentWeatherData['weather'][0]['main'];
+          } else {
+            final weatherData = snapshot.data!['weather'];
+            final forecastData = snapshot.data!['forecast'];
+            final currentTemp = weatherData['main']['temp'];
+            final currentSky = weatherData['weather'][0]['main'];
+            final humidity = weatherData['main']['humidity'];
+            final windSpeed = weatherData['wind']['speed'];
+            final pressure = weatherData['main']['pressure'];
+            final icon = weatherData['weather'][0]['main'];
+            final hourlyForecast = forecastData['list'];
+            // final forecastIcon = forecastData['list'][0];
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Delhi',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 40),
-                        ),
-                        Text(
-                          '${currentTemp.toInt()}° C',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 100),
-                        ),
-                        Icon(
-                          currentSky == 'clouds' || currentSky == 'rain'
-                              ? Icons.cloud
-                              : Icons.sunny,
-                          size: 100,
-                        ),
-                        Text(
-                          currentSky,
-                          style: const TextStyle(
-                            fontSize: 30,
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Delhi',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 40),
                           ),
-                        ),
-                      ],
+                          Text(
+                            '${currentTemp.toInt()}° C',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 100),
+                          ),
+                          // Icon(
+                          //   currentSky == 'smoke' || currentSky == 'rain'
+                          //       ? Icons.cloud
+                          //       : Icons.water_rounded,
+                          //   size: 100,
+                          // ),
+
+                          // getWeatherIcon(currentSky),
+
+                          getWeatherCondition(icon),
+                          Text(
+                            currentSky,
+                            style: const TextStyle(
+                              fontSize: 30,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Weather Forcast',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
-                  ),
-                  const SingleChildScrollView(
-                    physics: BouncingScrollPhysics(),
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Weather Forcast',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+                    ),
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (int i = 0; i < 9; i++)
+                            HourlyWeatherForcast(
+                              time: hourlyForecast[i]["dt_txt"].toString(),
+                              url: getUrl(
+                                  hourlyForecast[i]['weather'][0]['main']),
+                              temp: hourlyForecast[i]['main']['temp']
+                                  .toInt()
+                                  .toString(),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    const Text(
+                      'Additional Information',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        HourlyWeatherForcast(
-                            time: '03:00', icon: Icons.cloud, temp: '10° C'),
-                        HourlyWeatherForcast(
-                            time: '04:00', icon: Icons.sunny, temp: '20° C'),
-                        HourlyWeatherForcast(
-                            time: '05:00',
-                            icon: Icons.thunderstorm,
-                            temp: '22° C'),
-                        HourlyWeatherForcast(
-                            time: '06:00', icon: Icons.cloud, temp: '24° C'),
-                        HourlyWeatherForcast(
-                            time: '07:00', icon: Icons.cloud, temp: '25° C'),
+                        AdditionalInfoItem(
+                            icon: Icons.water_drop,
+                            label: 'humidity',
+                            value: '${humidity.toString()}%'),
+                        AdditionalInfoItem(
+                            icon: Icons.air,
+                            label: 'Wind Speed',
+                            value: '${windSpeed.toString()} m/s'),
+                        AdditionalInfoItem(
+                            icon: Icons.beach_access,
+                            label: 'Pressure',
+                            value: '${pressure.toString()} hPa'),
                       ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  const Text(
-                    'Additional Information',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
-                  ),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      AdditionalInfoItem(
-                          icon: Icons.water_drop,
-                          label: 'humidity',
-                          value: '94'),
-                      AdditionalInfoItem(
-                          icon: Icons.air, label: 'Wind Speed', value: '20'),
-                      AdditionalInfoItem(
-                          icon: Icons.beach_access,
-                          label: 'Pressure',
-                          value: '1006'),
-                    ],
-                  )
-                ],
+                    )
+                  ],
+                ),
               ),
-            ),
-          );
+            );
+          }
         },
       ),
     );
+  }
+}
+
+Image getWeatherCondition(String iconMain) {
+  switch (iconMain) {
+    case 'Thunderstorm':
+      return Image.network('https://openweathermap.org/img/wn/11d@2x.png');
+    case 'Drizzle':
+      return Image.network('https://openweathermap.org/img/wn/09d@2x.png');
+    case 'Rain':
+      return Image.network('https://openweathermap.org/img/wn/10d@2x.png');
+    case 'Snow':
+      return Image.network('https://openweathermap.org/img/wn/13d@2x.png');
+    case 'Mist' || 'Smoke' || 'Haze' || 'Fog':
+      return Image.network('https://openweathermap.org/img/wn/50d@2x.png');
+    case 'Clear':
+      return Image.network('https://openweathermap.org/img/wn/01d@2x.png');
+    case 'Clouds':
+      return Image.network('https://openweathermap.org/img/wn/02d@2x.png');
+    default:
+      return Image.network('');
+  }
+}
+
+String getUrl(url) {
+  switch (url) {
+    case 'Thunderstorm':
+      return 'https://openweathermap.org/img/wn/11d@2x.png';
+    case 'Drizzle':
+      return 'https://openweathermap.org/img/wn/09d@2x.png';
+    case 'Rain':
+      return 'https://openweathermap.org/img/wn/10d@2x.png';
+    case 'Snow':
+      return 'https://openweathermap.org/img/wn/13d@2x.png';
+    case 'Mist' || 'Smoke' || 'Haze' || 'Fog':
+      return 'https://openweathermap.org/img/wn/50d@2x.png';
+    case 'Clear':
+      return 'https://openweathermap.org/img/wn/01d@2x.png';
+    case 'Clouds':
+      return 'https://openweathermap.org/img/wn/02d@2x.png';
+    default:
+      return '';
   }
 }
